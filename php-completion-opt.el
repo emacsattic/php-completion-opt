@@ -21,6 +21,10 @@
 
 ;;; Commentary:
 
+;; Change Log
+;; 1.0.1: cleanup で persistent-action で用いたバッファを削除する処理を追加。
+;; 1.0.0: 新規作成
+
 ;; TODO documentation
 
 ;;; Code:
@@ -56,11 +60,17 @@
                                        (insert candidate)))
               ("Search". (lambda (candidate)
                            (phpcmp-search-manual candidate)))))
-              (persistent-action . phpcmpopt-popup-document-persistent-action))))
+              (persistent-action . phpcmpopt-popup-document-persistent-action)
+              (cleanup . phpcmpopt-delete-persistent-action-buffer))))
     (loop for (name candidates) in (phpcmp-completions-table)
           collect (make-source
                    :name name
                    :candidates candidates))))
+
+(defun phpcmpopt-delete-persistent-action-buffer ()
+   (and (get-buffer phpcmp-persistent-document-buffer)
+        (kill-buffer (get-buffer phpcmp-persistent-document-buffer)))
+  )
 
 (defun phpcmpopt-complete ()
   (interactive)
