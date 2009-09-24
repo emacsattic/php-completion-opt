@@ -35,7 +35,7 @@
 (require 'php-completion)
 
 (defvar phpcmpopt-persistent-document-buffer "*phpcmp persistent doc*")
-(setq phpcmpopt-popup-document-buffer "*php-manual*")
+(defvar phpcmpopt-popup-document-buffer "*php-manual*")
 (defvar phpcmpopt-horizontal-or-vertical-flag t
   "t なら垂直分割、nil なら水平分割")
 (defvar phpcmpopt-delete-pop-up-buffer-flag t
