@@ -22,6 +22,9 @@
 ;;; Commentary:
 
 ;; Change Log
+;; 1.0.2: phpcmpopt-manual-vertical-pop-up (垂直分割) を追加。
+;;        pop-out 時に phpcmpopt-popup-document-buffer を削除するように変更。
+;;        不具合修正。リファクタリング。
 ;; 1.0.1: cleanup で persistent-action で用いたバッファを削除する処理を追加。
 ;; 1.0.0: 新規作成
 
@@ -31,13 +34,19 @@
 
 (require 'php-completion)
 
-(defvar phpcmp-persistent-document-buffer "*phpcmp persistent doc*")
+(defvar phpcmpopt-persistent-document-buffer "*phpcmp persistent doc*")
+(setq phpcmpopt-popup-document-buffer "*php-manual*")
+(defvar phpcmpopt-horizontal-or-vertical-flag t
+  "t なら垂直分割、nil なら水平分割")
+(defvar phpcmpopt-delete-pop-up-buffer-flag t
+  "t なら pop-out 時に pop-up バッファを削除、nil ならそのまま残す")
 (defvar phpcmpopt-manual-window-height 75)
+(setq phpcmpopt-window-size
+      (round (* (window-height) (/ (- 100 phpcmpopt-manual-window-height) 100.0))))
 
 (defun phpcmpopt-popup-document-persistent-action (candidate)
-  ;(interactive)
     (let ((docstring (phpcmp-get-document-string candidate))
-           (b (get-buffer-create phpcmp-persistent-document-buffer)))
+           (b (get-buffer-create phpcmpopt-persistent-document-buffer)))
       (with-current-buffer b
         (erase-buffer)
         (insert docstring)
@@ -68,9 +77,8 @@
                    :candidates candidates))))
 
 (defun phpcmpopt-delete-persistent-action-buffer ()
-   (and (get-buffer phpcmp-persistent-document-buffer)
-        (kill-buffer (get-buffer phpcmp-persistent-document-buffer)))
-  )
+   (and (get-buffer phpcmpopt-persistent-document-buffer)
+        (kill-buffer (get-buffer phpcmpopt-persistent-document-buffer))))
 
 (defun phpcmpopt-complete ()
   (interactive)
@@ -83,23 +91,42 @@
 
 (defun phpcmpopt-manual-pop ()
   (interactive)
-  (if (equal (buffer-name) phpcmp-popup-document-buffer)
+  (if (equal (buffer-name) phpcmpopt-popup-document-buffer)
       (phpcmpopt-manual-pop-out)
-    (phpcmpopt-manual-pop-up)))
+    (if phpcmpopt-horizontal-or-vertical-flag
+        (phpcmpopt-manual-vertical-pop-up)
+      (phpcmpopt-manual-horizontal-pop-up))))
 
-(defun phpcmpopt-manual-pop-up ()
+(defun phpcmpopt-manual-horizontal-pop-up ()
   (setq phpcmpopt-manual-last-buffer (buffer-name))
   (setq phpcmpopt-manual-last-window (selected-window))
-  (split-window (selected-window)
-                (round (* (window-height)
-                          (/ (- 100 phpcmpopt-manual-window-height) 100.0))))
-  (phpcmp-popup-document-at-point))
+  (split-window (selected-window) phpcmpopt-window-size nil)
+  (phpcmpopt-popup-document-at-point))
+
+(defun phpcmpopt-manual-vertical-pop-up ()
+  (setq phpcmpopt-manual-last-buffer (buffer-name))
+  (setq phpcmpopt-manual-last-window (selected-window))
+  (split-window (selected-window) nil t)
+  (phpcmpopt-popup-document-at-point))
 
 (defun phpcmpopt-manual-pop-out ()
   (delete-window)
+  (if (and phpcmpopt-delete-pop-up-buffer-flag
+           (get-buffer phpcmpopt-popup-document-buffer))
+      (kill-buffer phpcmpopt-popup-document-buffer))
   (select-window phpcmpopt-manual-last-window)
   (switch-to-buffer phpcmpopt-manual-last-buffer))
 
+(defun phpcmpopt-popup-document-at-point ()
+  (interactive)
+  (let* ((s (or (thing-at-point 'symbol) ""))
+         (docstring (phpcmp-get-document-string s)))
+    (let ((b (get-buffer-create phpcmpopt-popup-document-buffer)))
+      (with-current-buffer b
+        (erase-buffer)
+        (insert docstring)
+        (goto-char (point-min)))
+      (pop-to-buffer b))))
 
 (provide 'php-completion-opt)
 
